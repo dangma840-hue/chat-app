@@ -2,27 +2,33 @@
 <html lang="vi">
 
 <head>
-    <meta charset="UTF-8" />
-    <title>Chat App</title>
+    <meta charset="UTF-8">
+    <title>Dark Chat</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-
-    <div id="login">
-        <h2>🔑 Vào phòng chat</h2>
+    <!-- LOGIN -->
+    <div id="login" class="login-box">
+        <h2>🔐 Vào phòng chat</h2>
         <input id="username" placeholder="Tên của bạn">
         <input id="room" placeholder="Tên phòng">
         <button onclick="joinRoom()">Vào phòng</button>
     </div>
 
-    <div id="chat" style="display:none;">
-        <h2 id="roomName"></h2>
-        <div id="messages"></div>
+    <!-- CHAT -->
+    <div id="chat" class="chat-box hidden">
+        <div class="chat-header">
+            <span id="roomTitle">📌 Phòng</span>
+        </div>
 
-        <div class="input-box">
-            <input id="messageInput" placeholder="Nhập tin nhắn...">
-            <button onclick="sendMessage()">Gửi</button>
+        <div id="messages" class="chat-messages"></div>
+
+        <div class="typing-area" id="typingArea"></div>
+
+        <div class="chat-input">
+            <input id="messageInput" placeholder="Nhập tin nhắn..." autocomplete="off">
+            <button onclick="sendMessage()">➤</button>
         </div>
     </div>
 

@@ -1,8 +1,10 @@
-const socket = io("http://localhost:3000"); // ⭐ chỉ định rõ
+const socket = io();
 
 let username = "";
 let room = "";
+let typingTimeout;
 
+/* ===== JOIN ===== */
 function joinRoom() {
   username = document.getElementById("username").value.trim();
   room = document.getElementById("room").value.trim();
@@ -12,42 +14,97 @@ function joinRoom() {
     return;
   }
 
-  socket.emit("joinRoom", { room, username });
+  document.getElementById("login").classList.add("hidden");
+  document.getElementById("chat").classList.remove("hidden");
+  document.getElementById("roomTitle").innerText = "📌 Phòng: " + room;
 
-  document.getElementById("login").style.display = "none";
-  document.getElementById("chat").style.display = "block";
-  document.getElementById("roomName").innerText = "Phòng: " + room;
+  socket.emit("joinRoom", { room, username });
 }
 
+/* ===== SEND ===== */
 function sendMessage() {
   const input = document.getElementById("messageInput");
   const text = input.value.trim();
   if (!text) return;
 
-  const data = {
+  socket.emit("chatMessage", {
     room,
     user: username,
     text,
     time: new Date().toLocaleTimeString()
-  };
+  });
 
-  console.log("➡️ Gửi:", data); // ⭐ debug
-
-  socket.emit("chatMessage", data);
+  socket.emit("stopTyping", { room });
   input.value = "";
 }
 
-socket.on("loadMessages", (messages) => {
-  messages.forEach(addMessage);
+/* ===== TYPING ===== */
+document.getElementById("messageInput").addEventListener("input", () => {
+  socket.emit("typing", { room });
+  clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(() => {
+    socket.emit("stopTyping", { room });
+  }, 800);
 });
 
-socket.on("chatMessage", (msg) => {
+/* ===== RECEIVE ===== */
+socket.on("loadMessages", msgs => {
+  msgs.forEach(addMessage);
+});
+
+socket.on("chatMessage", msg => {
+  hideTyping();
   addMessage(msg);
 });
 
+socket.on("typing", data => {
+  showTyping(data.user);
+});
+
+socket.on("stopTyping", hideTyping);
+
+/* ===== UI ===== */
 function addMessage(msg) {
-  const div = document.createElement("div");
-  div.className = "message";
-  div.innerText = `[${msg.time}] ${msg.user}: ${msg.text}`;
-  document.getElementById("messages").appendChild(div);
+  const box = document.getElementById("messages");
+
+  const wrap = document.createElement("div");
+  wrap.className = "message";
+
+  const avatar = document.createElement("div");
+  avatar.className = "avatar";
+  avatar.innerText = msg.user[0].toUpperCase();
+  avatar.style.background = colorFromName(msg.user);
+
+  const content = document.createElement("div");
+  content.className = "msg-content";
+  content.innerHTML = `
+    <div class="msg-user" style="color:${colorFromName(msg.user)}">
+      ${msg.user}
+      <span class="msg-time">${msg.time}</span>
+    </div>
+    <div>${msg.text}</div>
+  `;
+
+  wrap.appendChild(avatar);
+  wrap.appendChild(content);
+  box.appendChild(wrap);
+  box.scrollTop = box.scrollHeight;
+}
+
+function showTyping(user) {
+  const area = document.getElementById("typingArea");
+  area.innerHTML = `<span>${user} đang gõ</span><span class="typing-dots"></span>`;
+}
+
+function hideTyping() {
+  document.getElementById("typingArea").innerHTML = "";
+}
+
+/* ===== COLOR FIX ===== */
+function colorFromName(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return `hsl(${hash % 360}, 70%, 60%)`;
 }
