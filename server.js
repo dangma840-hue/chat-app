@@ -1,87 +1,54 @@
 require("dotenv").config();
+
 const express = require("express");
-const http = require("http");
 const mongoose = require("mongoose");
+const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
 
-// ===== PORT (QUAN TRỌNG CHO RENDER) =====
-const PORT = process.env.PORT || 10000;
-
-// ===== STATIC FILE =====
-app.use(express.static(path.join(__dirname, "public")));
-app.use(express.json());
-
-// ===== SOCKET.IO =====
 const io = new Server(server, {
-  cors: {
-    origin: "*",
-  },
-  transports: ["websocket"], // ⚡ ép websocket
+  cors: { origin: "*" }
 });
 
-// ===== MONGODB =====
+// ===== STATIC FILES =====
+app.use(express.static(path.join(__dirname, "public")));
+
+// ===== MONGO =====
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB Connected"))
+  .then(() => console.log("✅ Mongo Connected"))
   .catch(err => console.log("❌ Mongo Error:", err));
 
 // ===== SCHEMA =====
-const MessageSchema = new mongoose.Schema({
+const Message = mongoose.model("Message", {
   username: String,
   room: String,
   message: String,
   time: { type: Date, default: Date.now }
 });
 
-const Message = mongoose.model("Message", MessageSchema);
-
-// ===== SOCKET EVENTS =====
+// ===== SOCKET =====
 io.on("connection", (socket) => {
-  console.log("🟢 User connected");
 
   socket.on("joinRoom", async ({ username, room }) => {
     socket.join(room);
-    socket.username = username;
-    socket.room = room;
 
-    console.log(`👤 ${username} joined ${room}`);
-
-    // load tin nhắn cũ
-    const messages = await Message.find({ room }).sort({ time: 1 });
-    socket.emit("loadMessages", messages);
-
-    // cập nhật online
-    const clients = await io.in(room).fetchSockets();
-    io.to(room).emit("roomUsers", clients.length);
+    const oldMessages = await Message.find({ room }).sort({ time: 1 });
+    socket.emit("loadMessages", oldMessages);
   });
 
-  socket.on("sendMessage", async (data) => {
-    if (!data.message || !data.username) return;
-
-    const newMessage = new Message({
-      username: data.username,
-      room: socket.room,
-      message: data.message
-    });
-
+  socket.on("sendMessage", async ({ username, room, message }) => {
+    const newMessage = new Message({ username, room, message });
     await newMessage.save();
 
-    io.to(socket.room).emit("receiveMessage", newMessage);
-  });
-
-  socket.on("disconnect", async () => {
-    if (socket.room) {
-      const clients = await io.in(socket.room).fetchSockets();
-      io.to(socket.room).emit("roomUsers", clients.length);
-    }
-    console.log("🔴 User disconnected");
+    io.to(room).emit("receiveMessage", newMessage);
   });
 });
 
 // ===== START =====
+const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => {
-  console.log(`🔥 Server running on port ${PORT}`);
+  console.log("🔥 Server running on port", PORT);
 });
