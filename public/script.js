@@ -1,137 +1,87 @@
-const socket = io();
+const socket = io({
+  transports: ["websocket"]
+});
 
 let username = "";
 let room = "";
-let typingTimeout = null;
+let typingTimeout;
 
-/* ================= JOIN ROOM ================= */
+// ===== JOIN =====
 function joinRoom() {
-    username = document.getElementById("username").value.trim();
-    room = document.getElementById("room").value.trim();
+  username = document.getElementById("username").value.trim();
+  room = document.getElementById("room").value.trim();
 
-    if (!username || !room) {
-        alert("Nhập đầy đủ tên và phòng 😤");
-        return;
-    }
+  if (!username || !room) return alert("Nhập đủ 😤");
 
-    document.getElementById("login").classList.add("hidden");
-    document.getElementById("chat").classList.remove("hidden");
-    document.getElementById("roomTitle").innerText = "📌 Phòng: " + room;
+  document.getElementById("login").classList.add("hidden");
+  document.getElementById("chat").classList.remove("hidden");
+  document.getElementById("roomTitle").innerText = "📌 " + room;
 
-    socket.emit("joinRoom", { username, room });
+  socket.emit("joinRoom", { username, room });
 }
 
-/* ================= SEND MESSAGE ================= */
+// ===== SEND =====
 function sendMessage() {
-    const input = document.getElementById("messageInput");
-    const message = input.value.trim();
-    if (!message) return;
+  const input = document.getElementById("messageInput");
+  const message = input.value.trim();
+  if (!message) return;
 
-    socket.emit("sendMessage", {
-        username,
-        room,
-        message,
-        time: new Date().toLocaleTimeString()
-    });
+  socket.emit("sendMessage", { message });
+  socket.emit("stopTyping");
 
-    socket.emit("stopTyping", { room });
-
-    input.value = "";
+  input.value = "";
 }
 
-/* ================= ENTER TO SEND ================= */
-document.getElementById("messageInput").addEventListener("keypress", function (e) {
-    if (e.key === "Enter") {
-        sendMessage();
-    }
-});
-
-/* ================= TYPING ================= */
-document.getElementById("messageInput").addEventListener("input", function () {
-    socket.emit("typing", { room, username });
+// ===== TYPING =====
+document.getElementById("messageInput")
+  .addEventListener("input", () => {
+    socket.emit("typing");
 
     clearTimeout(typingTimeout);
     typingTimeout = setTimeout(() => {
-        socket.emit("stopTyping", { room });
+      socket.emit("stopTyping");
     }, 800);
+  });
+
+// ===== RECEIVE =====
+socket.on("loadMessages", msgs => {
+  msgs.forEach(addMessage);
 });
 
-/* ================= RECEIVE ================= */
-socket.on("loadMessages", (messages) => {
-    messages.forEach(addMessageToChat);
+socket.on("receiveMessage", msg => {
+  addMessage(msg);
 });
 
-socket.on("receiveMessage", (data) => {
-    removeTyping();
-    addMessageToChat(data);
-});
-
-socket.on("typing", (data) => {
-    if (data.username !== username) {
-        showTyping(data.username);
-    }
+socket.on("typing", user => {
+  document.getElementById("typingArea").innerText = user + " đang gõ...";
 });
 
 socket.on("stopTyping", () => {
-    removeTyping();
+  document.getElementById("typingArea").innerText = "";
 });
 
-/* ================= ADD MESSAGE ================= */
-function addMessageToChat(data) {
-    const messages = document.getElementById("messages");
+socket.on("roomUsers", count => {
+  document.getElementById("onlineCount").innerText = count;
+});
 
-    const wrap = document.createElement("div");
-    wrap.classList.add("message");
+// ===== UI =====
+function addMessage(data) {
+  const box = document.getElementById("messages");
 
-    if (data.username === username) {
-        wrap.classList.add("me");
-    }
+  const div = document.createElement("div");
+  div.classList.add("message");
 
-    const avatar = document.createElement("div");
-    avatar.classList.add("avatar");
-    avatar.innerText = data.username[0].toUpperCase();
-    avatar.style.background = colorFromName(data.username);
+  div.innerHTML = `
+    <div class="msg-user">${data.username}</div>
+    <div class="msg-text">${data.message}</div>
+  `;
 
-    const content = document.createElement("div");
-    content.classList.add("bubble");
-
-    content.innerHTML = `
-        <div class="msg-user" style="color:${colorFromName(data.username)}">
-            ${data.username}
-            <span class="msg-time">${data.time || ""}</span>
-        </div>
-        <div class="msg-text">${data.message}</div>
-    `;
-
-    wrap.appendChild(avatar);
-    wrap.appendChild(content);
-    messages.appendChild(wrap);
-
-    messages.scrollTop = messages.scrollHeight;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
 }
 
-/* ================= TYPING UI ================= */
-function showTyping(user) {
-    const area = document.getElementById("typingArea");
-    area.innerHTML = `
-        <div class="typing-box">
-            ${user} đang gõ
-            <span class="dot"></span>
-            <span class="dot"></span>
-            <span class="dot"></span>
-        </div>
-    `;
-}
-
-function removeTyping() {
-    document.getElementById("typingArea").innerHTML = "";
-}
-
-/* ================= COLOR FIX ================= */
-function colorFromName(name) {
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-        hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return `hsl(${hash % 360}, 70%, 60%)`;
-}
+// Enter gửi
+document.getElementById("messageInput")
+  .addEventListener("keypress", e => {
+    if (e.key === "Enter") sendMessage();
+  });
