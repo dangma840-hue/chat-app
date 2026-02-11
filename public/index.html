@@ -2,9 +2,9 @@
 <html lang="vi">
 
 <head>
-    <meta charset="UTF-8">
-    <title>Dark Chat 🚀</title>
-    <link rel="stylesheet" href="style.css?v=5">
+    <meta charset="UTF-8" />
+    <title>Dark Chat</title>
+    <link rel="stylesheet" href="style.css?v=1">
 </head>
 
 <body>
@@ -21,27 +21,24 @@
 
         <!-- CHAT -->
         <div id="chat" class="chat hidden">
-
             <div class="header">
-                <div id="roomTitle">📌 Phòng</div>
+                <div id="roomTitle">📌 Room</div>
                 <div class="online">Online: <span id="onlineCount">0</span></div>
             </div>
 
             <div id="messages" class="messages"></div>
 
-            <div id="typingArea" class="typing"></div>
-
             <div class="input-area">
-                <input id="messageInput" placeholder="Nhập tin nhắn..." autocomplete="off">
-                <button onclick="sendMessage()">➤</button>
+                <input id="messageInput" placeholder="Nhập tin nhắn...">
+                <button onclick="sendMessage()">Gửi</button>
             </div>
-
         </div>
 
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script src="script.js?v=5"></script>
+    <script src="script.js?v=1"></script>
+
 </body>
 
 </html>

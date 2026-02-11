@@ -1,176 +1,98 @@
 body {
-    margin: 0;
-    background: #0f172a;
-    font-family: 'Segoe UI', sans-serif;
-    color: white;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #1e1e2f;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.container {
+  width: 400px;
+  height: 600px;
+  background: #2a2a40;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.login {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.login input {
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+}
+
+.login button {
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: #00ffc8;
+  cursor: pointer;
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .hidden {
-    display: none;
+  display: none;
 }
 
-/* ===== LOGIN ===== */
-.login-box {
-    width: 350px;
-    margin: 120px auto;
-    background: #1e293b;
-    padding: 25px;
-    border-radius: 12px;
-    text-align: center;
+.header {
+  background: #3b3b5c;
+  padding: 15px;
+  text-align: center;
+  color: white;
 }
 
-.login-box input {
-    width: 90%;
-    padding: 8px;
-    margin: 8px 0;
-    border-radius: 6px;
-    border: none;
+.online {
+  font-size: 14px;
+  color: #00ffc8;
 }
 
-.login-box button {
-    padding: 8px 14px;
-    border: none;
-    border-radius: 6px;
-    background: #6366f1;
-    color: white;
-    cursor: pointer;
-}
-
-/* ===== CHAT BOX ===== */
-.chat-box {
-    width: 520px;
-    height: 680px;
-    margin: 40px auto;
-    background: #1e293b;
-    border-radius: 14px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.chat-header {
-    padding: 14px;
-    background: #111827;
-    font-weight: bold;
-}
-
-/* ===== MESSAGES ===== */
-.chat-messages {
-    flex: 1;
-    padding: 15px;
-    overflow-y: auto;
-    scroll-behavior: smooth;
+.messages {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
 }
 
 .message {
-    display: flex;
-    align-items: flex-start;
-    margin-bottom: 12px;
+  background: #444466;
+  padding: 8px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  color: white;
 }
 
-.message.me {
-    flex-direction: row-reverse;
+.input-area {
+  display: flex;
+  padding: 10px;
+  background: #3b3b5c;
 }
 
-.avatar {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    margin: 0 10px;
+.input-area input {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
 }
 
-.bubble {
-    background: #334155;
-    padding: 10px 14px;
-    border-radius: 14px;
-    max-width: 70%;
-    animation: fadeIn 0.2s ease-in;
-}
-
-.message.me .bubble {
-    background: #6366f1;
-}
-
-.msg-user {
-    font-weight: bold;
-    margin-bottom: 4px;
-}
-
-.msg-time {
-    font-size: 11px;
-    margin-left: 8px;
-    opacity: 0.6;
-}
-
-.msg-text {
-    font-size: 15px;
-}
-
-/* ===== INPUT ===== */
-.chat-input {
-    display: flex;
-    padding: 12px;
-    background: #0f172a;
-}
-
-.chat-input input {
-    flex: 1;
-    padding: 10px;
-    border-radius: 8px;
-    border: none;
-}
-
-.chat-input button {
-    margin-left: 8px;
-    padding: 10px 14px;
-    border: none;
-    background: #6366f1;
-    color: white;
-    border-radius: 8px;
-    cursor: pointer;
-}
-
-/* ===== TYPING ===== */
-.typing-area {
-    padding: 0 15px 8px 15px;
-    font-size: 14px;
-    opacity: 0.8;
-}
-
-.typing-box {
-    display: flex;
-    align-items: center;
-}
-
-.dot {
-    height: 6px;
-    width: 6px;
-    margin-left: 4px;
-    background: #6366f1;
-    border-radius: 50%;
-    animation: blink 1.4s infinite both;
-}
-
-.dot:nth-child(2) {
-    animation-delay: 0.2s;
-}
-
-.dot:nth-child(3) {
-    animation-delay: 0.4s;
-}
-
-@keyframes blink {
-    0% { opacity: .2; }
-    20% { opacity: 1; }
-    100% { opacity: .2; }
-}
-
-/* ===== ANIMATION ===== */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
+.input-area button {
+  margin-left: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background: #00ffc8;
+  cursor: pointer;
 }
