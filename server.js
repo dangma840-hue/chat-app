@@ -1,132 +1,87 @@
 require("dotenv").config();
-
 const express = require("express");
 const http = require("http");
-const { Server } = require("socket.io");
 const mongoose = require("mongoose");
-
-/* ===============================
-   1️⃣ TẠO SERVER
-================================= */
+const { Server } = require("socket.io");
+const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
 
+// ===== PORT (QUAN TRỌNG CHO RENDER) =====
+const PORT = process.env.PORT || 10000;
+
+// ===== STATIC FILE =====
+app.use(express.static(path.join(__dirname, "public")));
+app.use(express.json());
+
+// ===== SOCKET.IO =====
 const io = new Server(server, {
   cors: {
     origin: "*",
   },
+  transports: ["websocket"], // ⚡ ép websocket
 });
 
-app.use(express.static("public"));
+// ===== MONGODB =====
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch(err => console.log("❌ Mongo Error:", err));
 
-/* ===============================
-   2️⃣ KẾT NỐI MONGODB
-================================= */
-
-if (!process.env.MONGO_URI) {
-  console.error("❌ Thiếu MONGO_URI trong .env hoặc Environment Variables");
-  process.exit(1);
-}
-
-mongoose
-  .connect(process.env.MONGO_URI, {
-    serverSelectionTimeoutMS: 5000,
-  })
-  .then(() => {
-    console.log("✅ MongoDB connected");
-  })
-  .catch((err) => {
-    console.error("❌ MongoDB error:", err.message);
-  });
-
-/* ===============================
-   3️⃣ SCHEMA
-================================= */
-
+// ===== SCHEMA =====
 const MessageSchema = new mongoose.Schema({
+  username: String,
   room: String,
-  user: String,
-  text: String,
-  time: String,
+  message: String,
+  time: { type: Date, default: Date.now }
 });
 
 const Message = mongoose.model("Message", MessageSchema);
 
-/* ===============================
-   4️⃣ SOCKET LOGIC
-================================= */
-
-const onlineUsers = {}; // { room: [user1, user2] }
-
+// ===== SOCKET EVENTS =====
 io.on("connection", (socket) => {
-  console.log("👤 Connected:", socket.id);
+  console.log("🟢 User connected");
 
-  /* ===== JOIN ROOM ===== */
-  socket.on("joinRoom", async ({ room, username }) => {
+  socket.on("joinRoom", async ({ username, room }) => {
     socket.join(room);
     socket.username = username;
     socket.room = room;
 
-    // Lưu online user
-    if (!onlineUsers[room]) onlineUsers[room] = [];
-    if (!onlineUsers[room].includes(username)) {
-      onlineUsers[room].push(username);
-    }
+    console.log(`👤 ${username} joined ${room}`);
 
-    io.to(room).emit("onlineUsers", onlineUsers[room]);
+    // load tin nhắn cũ
+    const messages = await Message.find({ room }).sort({ time: 1 });
+    socket.emit("loadMessages", messages);
 
-    // Load tin nhắn cũ
-    try {
-      const messages = await Message.find({ room }).sort({ _id: 1 });
-      socket.emit("loadMessages", messages);
-    } catch (err) {
-      console.error("❌ Load messages error:", err.message);
-    }
+    // cập nhật online
+    const clients = await io.in(room).fetchSockets();
+    io.to(room).emit("roomUsers", clients.length);
   });
 
-  /* ===== CHAT MESSAGE ===== */
-  socket.on("chatMessage", async (data) => {
-    try {
-      const msg = new Message(data);
-      await msg.save();
-      io.to(data.room).emit("chatMessage", data);
-    } catch (err) {
-      console.error("❌ Save message error:", err.message);
+  socket.on("sendMessage", async (data) => {
+    if (!data.message || !data.username) return;
+
+    const newMessage = new Message({
+      username: data.username,
+      room: socket.room,
+      message: data.message
+    });
+
+    await newMessage.save();
+
+    io.to(socket.room).emit("receiveMessage", newMessage);
+  });
+
+  socket.on("disconnect", async () => {
+    if (socket.room) {
+      const clients = await io.in(socket.room).fetchSockets();
+      io.to(socket.room).emit("roomUsers", clients.length);
     }
-  });
-
-  /* ===== TYPING ===== */
-  socket.on("typing", () => {
-    socket.to(socket.room).emit("typing", socket.username);
-  });
-
-  socket.on("stopTyping", () => {
-    socket.to(socket.room).emit("stopTyping");
-  });
-
-  /* ===== DISCONNECT ===== */
-  socket.on("disconnect", () => {
-    const { room, username } = socket;
-
-    if (room && onlineUsers[room]) {
-      onlineUsers[room] = onlineUsers[room].filter(
-        (user) => user !== username
-      );
-      io.to(room).emit("onlineUsers", onlineUsers[room]);
-    }
-
-    console.log("❌ Disconnected:", socket.id);
+    console.log("🔴 User disconnected");
   });
 });
 
-/* ===============================
-   5️⃣ START SERVER
-================================= */
-
-const PORT = process.env.PORT || 3000;
-
+// ===== START =====
 server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🔥 Server running on port ${PORT}`);
 });
-
