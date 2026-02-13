@@ -15,7 +15,7 @@ app.use(cors());
 app.use(express.json());
 app.use(compression());
 
-// Phục vụ file tĩnh
+// Serve static files
 app.use(express.static("public", {
   maxAge: "7d"
 }));
@@ -31,7 +31,7 @@ const io = new Server(server, {
   }
 });
 
-// ====== CONNECT MONGODB ======
+// ====== CONNECT MONGODB (GIỮ NGUYÊN - QUAN TRỌNG) ======
 if (!process.env.MONGO_URI) {
   console.log("❌ MONGO_URI chưa được cấu hình");
   process.exit(1);
@@ -49,8 +49,17 @@ const MessageSchema = new mongoose.Schema({
   room: String,
   username: String,
   message: String,
-  time: { type: Date, default: Date.now }
+  roomType: {
+    type: String,
+    enum: ["temporary", "permanent"],
+    default: "temporary"
+  },
+  time: { type: Date, default: Date.now },
+  expireAt: Date
 });
+
+// TTL index (tự xoá khi đến expireAt)
+MessageSchema.index({ expireAt: 1 }, { expireAfterSeconds: 0 });
 
 const Message = mongoose.model("Message", MessageSchema);
 
@@ -64,41 +73,61 @@ io.on("connection", (socket) => {
   console.log("🟢 User connected:", socket.id);
 
   // Join phòng
-  socket.on("joinRoom", async ({ username, room }) => {
+  socket.on("joinRoom", async ({ username, room, roomType }) => {
     socket.join(room);
     socket.username = username;
     socket.room = room;
+    socket.roomType = roomType || "temporary";
 
-    console.log(`👤 ${username} joined room ${room}`);
+    console.log(`👤 ${username} joined room ${room} (${socket.roomType})`);
 
-    // Load tin nhắn cũ
-    const oldMessages = await Message.find({ room }).sort({ time: 1 });
-    socket.emit("loadMessages", oldMessages);
+    try {
+      const oldMessages = await Message.find({ room }).sort({ time: 1 });
+      socket.emit("loadMessages", oldMessages);
+    } catch (err) {
+      console.error("Load message error:", err.message);
+    }
   });
 
   // Gửi tin nhắn
-  socket.on("sendMessage", async ({ username, message }) => {
-    if (!socket.room) return;
+  socket.on("sendMessage", async ({ message }) => {
+    if (!socket.room || !socket.username) return;
 
-    const newMessage = new Message({
-      room: socket.room,
-      username,
-      message
-    });
+    try {
+      let expireTime = null;
 
-    await newMessage.save();
+      // Nếu phòng temporary → tự xoá sau 24h
+      if (socket.roomType === "temporary") {
+        expireTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      }
 
-    io.to(socket.room).emit("receiveMessage", newMessage);
+      const newMessage = new Message({
+        room: socket.room,
+        username: socket.username,
+        message,
+        roomType: socket.roomType,
+        expireAt: expireTime
+      });
+
+      await newMessage.save();
+
+      io.to(socket.room).emit("receiveMessage", newMessage);
+
+    } catch (err) {
+      console.error("Save message error:", err.message);
+    }
   });
 
   // Typing
   socket.on("typing", () => {
+    if (!socket.room) return;
     socket.to(socket.room).emit("typing", {
       username: socket.username
     });
   });
 
   socket.on("stopTyping", () => {
+    if (!socket.room) return;
     socket.to(socket.room).emit("stopTyping");
   });
 
