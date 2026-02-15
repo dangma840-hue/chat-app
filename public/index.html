@@ -5,15 +5,13 @@
     <meta charset="UTF-8">
     <title>🔥 RealTime Chat</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <script src="/socket.io/socket.io.js"></script>
-
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
+            font-family: Poppins
         }
 
         body {
@@ -22,7 +20,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            color: white;
+            color: white
         }
 
         .container {
@@ -32,74 +30,90 @@
             border-radius: 15px;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
-            box-shadow: 0 0 25px rgba(0, 0, 0, 0.6);
-            animation: fadeIn 0.6s ease;
+            overflow: hidden
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: scale(0.9);
-            }
+        .user-select {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 40px
+        }
 
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
+        .user-box {
+            height: 100px;
+            background: #44446a;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-weight: bold
+        }
+
+        .user-box:hover {
+            background: #00ffcc;
+            color: black
+        }
+
+        .screen {
+            display: flex;
+            flex-direction: column;
+            padding: 40px;
+            gap: 15px
+        }
+
+        .screen input {
+            padding: 8px;
+            border-radius: 8px;
+            border: none
+        }
+
+        .screen button {
+            padding: 8px;
+            border-radius: 8px;
+            border: none;
+            background: #00ffcc;
+            cursor: pointer
         }
 
         .header {
             padding: 15px;
             background: #3a3a5f;
             text-align: center;
-            font-weight: bold;
+            font-weight: bold
         }
 
-        .online {
-            font-size: 12px;
-            color: #00ffcc;
+        #onlineBar {
+            font-size: 13px;
             margin-top: 5px;
+            color: #00ffcc;
         }
 
         .messages {
             flex: 1;
             padding: 10px;
-            overflow-y: auto;
+            overflow-y: auto
         }
 
         .message {
             margin-bottom: 10px;
             padding: 8px 12px;
             background: #44446a;
-            border-radius: 10px;
-            animation: slideUp 0.3s ease;
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(15px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            border-radius: 10px
         }
 
         .input-area {
             display: flex;
             padding: 10px;
-            background: #3a3a5f;
+            background: #3a3a5f
         }
 
         .input-area input {
             flex: 1;
             padding: 8px;
             border: none;
-            border-radius: 8px;
-            outline: none;
+            border-radius: 8px
         }
 
         .input-area button {
@@ -107,116 +121,151 @@
             padding: 8px 12px;
             border: none;
             border-radius: 8px;
-            background: #00ffcc;
-            cursor: pointer;
-            font-weight: bold;
+            background: #00ffcc
         }
 
-        .login {
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            gap: 10px;
+        #adminPanel {
+            padding: 10px;
+            background: #1f1f35;
+            font-size: 14px
         }
 
-        .login input {
-            padding: 8px;
-            border-radius: 8px;
+        .request-item {
+            margin-top: 8px;
+            padding: 6px;
+            background: #2a2a45;
+            border-radius: 6px;
+        }
+
+        .request-item button {
+            margin-left: 6px;
+            padding: 3px 6px;
             border: none;
-        }
-
-        .login button {
-            padding: 8px;
-            border-radius: 8px;
-            border: none;
-            background: #00ffcc;
-            font-weight: bold;
+            border-radius: 4px;
             cursor: pointer;
         }
     </style>
 </head>
 
 <body>
-
-    <div class="container">
-
-        <div id="login" class="login">
-            <input type="text" id="username" placeholder="Tên của bạn">
-            <input type="text" id="room" placeholder="Tên phòng">
-            <button onclick="joinRoom()">Vào phòng 🚀</button>
-        </div>
-
-        <div id="chat" style="display:none; flex-direction:column; height:100%;">
+    <div class="container"> <!-- USER SELECT -->
+        <div id="selectUser" class="user-select">
+            <div class="user-box" onclick="chooseUser('admin')">ADMIN</div>
+            <div class="user-box" onclick="chooseUser('Emi Fukada')">EMI</div>
+            <div class="user-box" onclick="chooseUser('BCM')">BCM</div>
+            <div class="user-box" onclick="chooseUser('Henri')">HENRI</div>
+        </div> <!-- USER PASSWORD -->
+        <div id="userPasswordScreen" class="screen" style="display:none;">
+            <h3 id="userTitle"></h3> <input type="password" id="userPassword" placeholder="Mật khẩu user"> <button
+                onclick="nextToRoom()">Tiếp tục</button>
+        </div> <!-- ROOM PASSWORD -->
+        <div id="roomPasswordScreen" class="screen" style="display:none;">
+            <h3>Nhập mật khẩu phòng</h3> <input type="password" id="roomPassword" placeholder="Mật khẩu phòng"> <button
+                onclick="login()">Vào phòng</button>
+        </div> <!-- CHAT -->
+        <div id="chat" style="display:none;flex-direction:column;height:100%;">
             <div class="header">
-                <div id="roomTitle">Phòng</div>
-                <div class="online">Online: <span id="onlineCount">0</span></div>
+                <div id="roomTitle"></div>
+                <div id="onlineBar">Online: <span id="onlineCount">0</span></div>
             </div>
-
+            <div id="adminPanel" style="display:none;">
+                <div>🔔 Yêu cầu chờ (<span id="pendingCount">0</span>)</div>
+                <div id="requestList"></div>
+            </div>
             <div class="messages" id="messages"></div>
-
-            <div class="input-area">
-                <input type="text" id="messageInput" placeholder="Nhập tin nhắn...">
-                <button onclick="sendMessage()">Gửi</button>
-            </div>
+            <div class="input-area"> <input type="text" id="messageInput" placeholder="Nhập tin nhắn..."> <button
+                    onclick="sendMessage()">Gửi</button> </div>
         </div>
-
     </div>
-
-    <script>
-        const socket = io({ transports: ["websocket"] });
-
-        let username = "";
-        let room = "";
-
-        function joinRoom() {
-            username = document.getElementById("username").value.trim();
-            room = document.getElementById("room").value.trim();
-
-            if (!username || !room) return alert("Nhập đầy đủ 😤");
-
-            document.getElementById("login").style.display = "none";
-            document.getElementById("chat").style.display = "flex";
-            document.getElementById("roomTitle").innerText = "📌 " + room;
-
-            socket.emit("joinRoom", { username, room });
-        }
-
-        function sendMessage() {
-            const input = document.getElementById("messageInput");
-            const message = input.value.trim();
-            if (!message) return;
-
-            socket.emit("sendMessage", { username, message });
-            input.value = "";
-        }
-
-        socket.on("loadMessages", (messages) => {
-            messages.forEach(addMessage);
-        });
-
-        socket.on("receiveMessage", (data) => {
-            addMessage(data);
-        });
-
-        socket.on("roomUsers", (count) => {
-            document.getElementById("onlineCount").innerText = count;
-        });
-
-        function addMessage(data) {
-            const messages = document.getElementById("messages");
-            const div = document.createElement("div");
-            div.classList.add("message");
-            div.innerHTML = `<strong>${data.username}:</strong> ${data.message}`;
-            messages.appendChild(div);
-            messages.scrollTop = messages.scrollHeight;
-        }
-
-        document.getElementById("messageInput")
-            .addEventListener("keypress", (e) => {
-                if (e.key === "Enter") sendMessage();
-            });
-    </script>
-
 </body>
+<script>
+    const socket = io();
+    let selectedUser = "";
+    let userPassword = "";
+    let isAdmin = false;
+    let pending = 0;
+    function chooseUser(user) {
+        selectedUser = user;
+        document.getElementById("selectUser").style.display = "none";
+        document.getElementById("userPasswordScreen").style.display = "flex";
+        document.getElementById("userTitle").innerText = "User: " + user;
+    }
+    function nextToRoom() {
+        userPassword = document.getElementById("userPassword").value.trim();
+        if (!userPassword) return alert("Nhập password user");
+        document.getElementById("userPasswordScreen").style.display = "none";
+        document.getElementById("roomPasswordScreen").style.display = "flex";
+    }
+    function login() {
+        const roomPassword = document.getElementById("roomPassword").value.trim();
+        if (!roomPassword) return alert("Nhập password phòng");
+        socket.emit("login", { username: selectedUser, password: userPassword, roomPassword });
+    }
+    socket.on("loginSuccess", (room) => {
+        document.getElementById("roomPasswordScreen").style.display = "none";
+        document.getElementById("chat").style.display = "flex";
+        document.getElementById("roomTitle").innerText = "📌 " + room;
+        if (selectedUser === "admin") {
+            isAdmin = true;
+            document.getElementById("adminPanel").style.display = "block";
+        }
+    });
+    socket.on("roomUsers", (count) => {
+        document.getElementById("onlineCount").innerText = count;
+    });
+    socket.on("approvalRequest", (data) => {
+        if (!isAdmin) return;
+        pending++;
+        document.getElementById("pendingCount").innerText = pending;
+        const div = document.createElement("div");
+        div.classList.add("request-item");
+        div.id = "req-" + data.socketId;
+        div.innerHTML = `${data.username} muốn vào LKFD <button onclick="approve('${data.socketId}')">✔</button> <button onclick="reject('${data.socketId}')">✖</button>`;
+        document.getElementById("requestList").appendChild(div);
+    });
+    function approve(socketId) {
+        socket.emit("approveUser", { socketId });
+    }
+    function reject(socketId) {
+        socket.emit("rejectUser", { socketId });
+    }
+    socket.on("removeRequest", (socketId) => {
+        const el = document.getElementById("req-" + socketId);
+        if (el) el.remove();
+        pending--;
+        if (pending < 0) pending = 0;
+        document.getElementById("pendingCount").innerText = pending;
+    });
+    socket.on("waitingApproval", () => {
+        alert("⏳ Đang chờ admin duyệt...");
+    });
+    socket.on("loginError", (msg) => {
+        alert(msg);
+        location.reload();
+    });
+    function sendMessage() {
+        const input = document.getElementById("messageInput");
+        const message = input.value.trim();
+        if (!message) return;
+        socket.emit("sendMessage", { message });
+        input.value = "";
+    }
+    socket.on("loadMessages", (messages) => {
+        messages.forEach(addMessage);
+    });
+    socket.on("receiveMessage", (data) => {
+        addMessage(data);
+    });
+    function addMessage(data) {
+        const div = document.createElement("div");
+        div.classList.add("message");
+        div.innerHTML = `<strong>${data.username}:</strong> ${data.message}`;
+        document.getElementById("messages").appendChild(div);
+        document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
+    }
+    document.getElementById("messageInput").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") sendMessage();
+    });
+</script>
 
 </html>
